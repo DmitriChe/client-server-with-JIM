@@ -34,4 +34,3 @@ def resolve(acton_name, actions=None):
         for action in action_list
     }
     return action_mapping.get(acton_name)  # возвращаем контроллер по имени action, т.е. по названию действия
-

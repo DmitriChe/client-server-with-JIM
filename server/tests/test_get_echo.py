@@ -39,22 +39,3 @@ def test_code_get_echo(initial_request, expected_code):
 def test_data_get_echo(initial_request, expected_data):
     actual_response = get_echo(initial_request)
     assert actual_response.get('data') == expected_data
-
-
-# def test_time_get_echo(initial_request, expected_action, expected_code, expected_data):
-#     actual_response = get_echo(initial_request)
-#     assert actual_response.get('time') == expected_action
-#
-#
-#
-# def test_code_make_response(initial_request, expected_code, expected_data):
-#     actual_response = make_response(
-#         initial_request, expected_code, expected_data
-#     )
-#     assert actual_response.get('code') == expected_code
-#
-# def test_data_make_response(initial_request, expected_code, expected_data):
-#     actual_response = make_response(
-#         initial_request, expected_code, expected_data
-#     )
-#     assert actual_response.get('data') == expected_data

@@ -1,0 +1,15 @@
+2019-08-03 17:59:47,655 - INFO - Server started with localhost:7777
+2019-08-03 18:02:32,866 - INFO - Client was detected 127.0.0.1:18009
+2019-08-03 18:11:21,295 - INFO - Server started with localhost:7777
+2019-08-03 18:11:26,908 - INFO - Client was detected 127.0.0.1:18041
+2019-08-03 18:12:07,512 - INFO - Server started with localhost:7777
+2019-08-03 18:12:11,300 - INFO - Client was detected 127.0.0.1:18044
+2019-08-03 18:12:15,520 - ERROR - Controller with action name test does not exists
+2019-08-03 18:12:33,800 - INFO - Client was detected 127.0.0.1:18048
+2019-08-03 18:12:38,147 - INFO - Client send valid request {'action': 'echo', 'time': 1564845158.146495, 'data': 'test'}
+2019-08-03 18:19:51,557 - INFO - Client was detected 127.0.0.1:18080
+2019-08-03 18:20:00,743 - ERROR - Controller with action name qwerty does not exists
+2019-08-03 22:54:05,816 - INFO - Server started with localhost:7777
+2019-08-03 22:54:15,992 - INFO - Client was detected 127.0.0.1:19033
+2019-08-03 22:54:26,965 - INFO - Client send valid request {'action': 'echo', 'time': 1564862066.901598, 'data': 'privet'}
+2019-08-03 22:54:26,966 - DEBUG - get_echo: {'action': 'echo', 'time': 1564862066.901598, 'data': 'privet'}

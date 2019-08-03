@@ -7,8 +7,11 @@
 import yaml
 import json
 import socket
+import logging
 from argparse import ArgumentParser
+from actions import resolve
 from protocol import validate_request, make_response
+
 
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
@@ -54,6 +57,33 @@ if args.config:
         config.update(file_config)
 
 
+# logger = logging.getLogger('main')
+# # Задаем формат лога как Время-Уровень_журналирования-Сообщение
+# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# # Обработчик ошибок
+# file_handler = logging.FileHandler('main.log')
+# # Выводит содержимое лога на экран терминала, а не в файл
+# stream_handler = logging.StreamHandler()
+# # Задаем уровни журналирования
+# file_handler.setLevel(logging.DEBUG)
+# stream_handler.setLevel(logging.DEBUG)
+# # Передаем форматтер
+# file_handler.setFormatter(formatter)
+# stream_handler.setFormatter(formatter)
+#
+# logger.addHandler(file_handler)
+# logger.addHandler(stream_handler)
+# logger.setLevel(logging.DEBUG)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('main.log'),
+        logging.StreamHandler(),
+    ]
+)
+
 # Вычленяем данные для подключения из config
 host, port = config.get('host'), config.get('port')
 
@@ -73,29 +103,41 @@ try:
     # listen - просигнализировать о готовности принимать соедение (аргументом явл число возможных подключений)
     sock.listen(5)  # Может обрабатыват 5 одновременных подключений
     # И отчитываемся, что
-    print(f'Server started with { host }:{ port }')
+    logging.info(f'Server started with { host }:{ port }')
+    # print(f'Server started with { host }:{ port }')
 
     # Создаем бесконечный цикл ожидаиня сервером - прослушку
     while True:
         client, address = sock.accept()
-        print(f'Client was detected { address[0] }:{ address[1]}')
+        logging.info(f'Client was detected { address[0] }:{ address[1]}')
+        # print(f'Client was detected { address[0] }:{ address[1]}')
         # Пока реализуем простой эхо-сервер: сервер плучает от клиента сообщение и отсылает его в ответ
         b_request = client.recv(config.get('buffersize'))  # Получаем сообщеие клиента
         # Декодируем запрос пользователя и переформатируем его в формат json
         request = json.loads(b_request.decode())
         # Проводим валидацию запроса на предмет наличия требуемых полей
-        # Если все в порядке, то
+        # Если все в порядке, то Запускаем обработчик запроса - handler
         if validate_request(request):
-            try:
-                print(f'Client send valid request {request}')
-                # И генерируем ответ сервера из запроса, кода ответа сервера и данных
-                response = make_response(request, 200, data=request.get('data'))
-            except Exception as err:
-                print(f'Internal server error: {err}')
-                response = make_response(request, 500, data='Internal server error')
+            action_name = request.get('action')  # берем из запроса имя требуемого действия
+            controller = resolve(action_name)  # и по этому имени получаем контроллер (т.е. функцию, принимающую объект запроса)
+            if controller:  # если контроллер существует, то
+                try:
+                    logging.info(f'Client send valid request {request}')
+                    # print(f'Client send valid request {request}')
+                    # И генерируем ответ сервера из запроса, кода ответа сервера и данных
+                    response = controller(request)  # запускаем контроллер (т.е. функцию, действие, принимающую объект запроса)
+                except Exception as err:
+                    logging.critical(f'Internal server error: {err}')
+                    # print(f'Internal server error: {err}')
+                    response = make_response(request, 500, data='Internal server error')
+            else:
+                logging.error(f'Controller with action name {action_name} does not exists')
+                # print(f'Controller with action name {action_name} does not exists')
+                response = make_response(request, 404, 'Action not found')
         # Иначе:
         else:
-            print(f'Client send invalid request {request}')
+            logging.error(f'Client send invalid request {request}')
+            # print(f'Client send invalid request {request}')
             response = make_response(request, 404, 'Wrong request')
 
         # Форматируем в json, кодируем и отсылаем клиенту обратно его сообщение: "эхо"

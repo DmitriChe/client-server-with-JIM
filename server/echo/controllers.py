@@ -1,4 +1,4 @@
-from protocol import make_response
+from server.protocol import make_response
 
 
 def get_echo(request):

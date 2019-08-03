@@ -9,6 +9,7 @@ def validate_request(request):
         return True
     return False
 
+
 # Функция генерирующая стандартный ответ сервера
 # code - код ответа сервера (https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)
 def make_response(request, code, data=None):

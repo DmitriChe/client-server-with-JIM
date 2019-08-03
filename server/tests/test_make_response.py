@@ -9,7 +9,7 @@
 import pytest  # для описания атомарных фикстур
 from datetime import datetime
 # Импортируем ТЕСТИРУЕМУЮ функцию. Функция make_response формирует объект ответа сервера. Вот это мы и тестируем.
-from server.protocol import make_response
+from protocol import make_response
 
 # ФИКСТУРЫ как "динамические", многофункциональные константы
 # описываем фикстуры, предварительно импортировав модуль pytest

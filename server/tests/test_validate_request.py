@@ -2,7 +2,7 @@
 # Для создания фикстур импортируем модуль pytest
 import pytest
 from datetime import datetime
-from server.protocol import validate_request
+from protocol import validate_request
 
 
 @pytest.fixture

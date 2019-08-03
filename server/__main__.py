@@ -75,7 +75,14 @@ if args.config:
 # logger.addHandler(stream_handler)
 # logger.setLevel(logging.DEBUG)
 
-
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('main.log'),
+        logging.StreamHandler(),
+    ]
+)
 
 # Вычленяем данные для подключения из config
 host, port = config.get('host'), config.get('port')
@@ -96,13 +103,13 @@ try:
     # listen - просигнализировать о готовности принимать соедение (аргументом явл число возможных подключений)
     sock.listen(5)  # Может обрабатыват 5 одновременных подключений
     # И отчитываемся, что
-    logger.info(f'Server started with { host }:{ port }')
+    logging.info(f'Server started with { host }:{ port }')
     # print(f'Server started with { host }:{ port }')
 
     # Создаем бесконечный цикл ожидаиня сервером - прослушку
     while True:
         client, address = sock.accept()
-        logger.info(f'Client was detected { address[0] }:{ address[1]}')
+        logging.info(f'Client was detected { address[0] }:{ address[1]}')
         # print(f'Client was detected { address[0] }:{ address[1]}')
         # Пока реализуем простой эхо-сервер: сервер плучает от клиента сообщение и отсылает его в ответ
         b_request = client.recv(config.get('buffersize'))  # Получаем сообщеие клиента
@@ -115,21 +122,21 @@ try:
             controller = resolve(action_name)  # и по этому имени получаем контроллер (т.е. функцию, принимающую объект запроса)
             if controller:  # если контроллер существует, то
                 try:
-                    logger.info(f'Client send valid request {request}')
+                    logging.info(f'Client send valid request {request}')
                     # print(f'Client send valid request {request}')
                     # И генерируем ответ сервера из запроса, кода ответа сервера и данных
                     response = controller(request)  # запускаем контроллер (т.е. функцию, действие, принимающую объект запроса)
                 except Exception as err:
-                    logger.critical(f'Internal server error: {err}')
+                    logging.critical(f'Internal server error: {err}')
                     # print(f'Internal server error: {err}')
                     response = make_response(request, 500, data='Internal server error')
             else:
-                logger.error(f'Controller with action name {action_name} does not exists')
+                logging.error(f'Controller with action name {action_name} does not exists')
                 # print(f'Controller with action name {action_name} does not exists')
                 response = make_response(request, 404, 'Action not found')
         # Иначе:
         else:
-            logger.error(f'Client send invalid request {request}')
+            logging.error(f'Client send invalid request {request}')
             # print(f'Client send invalid request {request}')
             response = make_response(request, 404, 'Wrong request')
 

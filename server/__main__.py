@@ -8,7 +8,9 @@ import yaml
 import json
 import socket
 from argparse import ArgumentParser
+from actions import resolve
 from protocol import validate_request, make_response
+
 
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
@@ -84,15 +86,21 @@ try:
         # Декодируем запрос пользователя и переформатируем его в формат json
         request = json.loads(b_request.decode())
         # Проводим валидацию запроса на предмет наличия требуемых полей
-        # Если все в порядке, то
+        # Если все в порядке, то Запускаем обработчик запроса - handler
         if validate_request(request):
-            try:
-                print(f'Client send valid request {request}')
-                # И генерируем ответ сервера из запроса, кода ответа сервера и данных
-                response = make_response(request, 200, data=request.get('data'))
-            except Exception as err:
-                print(f'Internal server error: {err}')
-                response = make_response(request, 500, data='Internal server error')
+            action_name = request.get('action')  # берем из запроса имя требуемого действия
+            controller = resolve(action_name)  # и по этому имени получаем контроллер (т.е. функцию, принимающую объект запроса)
+            if controller:  # если контроллер существует, то
+                try:
+                    print(f'Client send valid request {request}')
+                    # И генерируем ответ сервера из запроса, кода ответа сервера и данных
+                    response = controller(request)  # запускаем контроллер (т.е. функцию, действие, принимающую объект запроса)
+                except Exception as err:
+                    print(f'Internal server error: {err}')
+                    response = make_response(request, 500, data='Internal server error')
+            else:
+                print(f'Controller with action name {action_name} does not exists')
+                response = make_response(request, 404, 'Action not found')
         # Иначе:
         else:
             print(f'Client send invalid request {request}')

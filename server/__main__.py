@@ -1,20 +1,16 @@
-# pip install pyyaml
+
 # python server.py
 # python server.py -c config yml
 # python server.py -a 127.0.0.1 -p 7777
 # python server.py -a localhost -p 7777
 # Пересылка: str -> bytes -> compress -> send -> recv -> decompress -> bytes -> str
 
-import yaml
-import json
+import yaml  # pip install pyyaml
 import socket
 import logging
 import select
 from argparse import ArgumentParser
-from actions import resolve
-from protocol import validate_request, make_response
 from handlers import handle_default_request
-
 
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
@@ -110,9 +106,7 @@ try:
 
         # Передаем список всех подключений для сортировки в select и таймаут=0, для непрерывной работы
         # и получаем списки отправителей на сервер, получателей от сервера и ошибок природы
-        rlist, wlist, xlist = select.select(
-            connections, connections, connections, 0
-        )
+        rlist, wlist, xlist = select.select(connections, connections, connections, 0)
 
         for read_client in rlist:
             bytes_request = read_client.recv(config.get('buffersize'))

@@ -42,8 +42,10 @@ def make_request(action, data):
 # А для этого предусмотрим возможнось задавать его имя из командной строки при запуске приложения,
 # а оттуда будем парсить настройки с помощью ArgumentParser
 
+
 # Создание парсера командной строки для анализа запроса: python client.py -c config.yml
 parser = ArgumentParser()
+
 parser.add_argument(
     '-c', '--config', type=str,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
@@ -60,6 +62,7 @@ parser.add_argument(
     help='Sets tcp-порт сервера'  # Сообщение при вызове помощи
 )
 # Аргумент режима работы клиента-мессенджера: чтение или запись (прием или отправка)
+# По умолчанию режим отправки сообщений
 parser.add_argument(
     '-m', '--mode', type=str, default=WRITE_MODE,
     help='Sets client mode'
@@ -104,12 +107,12 @@ try:
 
     # запускаем клиент в бесконечном цикле и проверяем режим работы
     while True:
+        # если клиент открыт в режиме отправки сообщений то постоянно создаем и отправляем сообщения
         if args.mode == WRITE_MODE:
             # Данные: ввод и вывод
             action = input('Enter action: ')
             data = input('Enter data: ')
             request = make_request(action, data)
-
             # Получаем строку из запроса в формате json (из словаря с данными запроса request)
             str_request = json.dumps(request)
             # Кодирование и компрессия введенных пользователем данных
@@ -119,6 +122,7 @@ try:
             print(f'Client send data { data }\n')
             # КОНЕЦ отправки
 
+        # если клиент открыт в режиме приема сообщений то постоянно принимаемсообщения
         elif args.mode == READ_MODE:
             # Получаем ответ сервера
             response = sock.recv(config.get('buffersize'))

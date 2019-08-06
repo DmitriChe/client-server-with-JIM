@@ -19,6 +19,7 @@
 
 
 # pip install pyyaml
+import zlib
 import yaml
 import json
 from datetime import datetime
@@ -98,12 +99,18 @@ try:
     }
     # Формируем строку запроса в формате json из словаря с данными запроса request
     str_request = json.dumps(request)
-    # Кодируем данные и передаем на сокет сервера
-    sock.send(str_request.encode())
+    # Кодирование и компрессия введенных пользователем данных
+    bytes_request = zlib.compress(str_request.encode())
+
+    # Отправляем сжатые данные на сокет сервера для передачи по сети
+    sock.send(bytes_request)
     print(f'Client send data { data }\n')
 
-    b_response = sock.recv(config.get('buffersize'))
-    print(f'Server send data {b_response.decode()}')  # деокдируем и выводим полученные данные
+    # Получаем ответ сервера
+    response = sock.recv(config.get('buffersize'))
+    # Разархивируем полученное сообщение
+    bytes_response = zlib.decompress(response)
+    print(f'Server send data {bytes_response.decode()}')  # деокдируем и выводим полученные данные
 
 except KeyboardInterrupt:
     print('Client shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение

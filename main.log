@@ -34,3 +34,15 @@
 2019-08-06 14:09:59,512 - INFO - Server started with localhost:7777
 2019-08-06 14:10:06,496 - INFO - Server started with localhost:7777
 2019-08-06 14:36:11,312 - INFO - Server started with localhost:7777
+2019-08-06 14:49:24,446 - INFO - Server started with localhost:7777
+2019-08-06 14:51:04,967 - INFO - Server started with localhost:7777
+2019-08-06 14:51:22,910 - INFO - Server started with localhost:7777
+2019-08-06 14:51:40,982 - INFO - Server started with localhost:7777
+2019-08-06 14:51:59,512 - INFO - Server started with localhost:7777
+2019-08-06 14:53:01,054 - INFO - Server started with localhost:7777
+2019-08-06 15:14:55,658 - INFO - Server started with localhost:7777
+2019-08-06 15:15:28,325 - INFO - Client was detected 127.0.0.1:65212
+2019-08-06 15:15:38,633 - INFO - Client was detected 127.0.0.1:65213
+2019-08-06 15:15:46,987 - ERROR - Controller with action name  echo does not exists
+2019-08-06 15:16:02,495 - INFO - Client send valid request {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}
+2019-08-06 15:16:02,496 - DEBUG - get_echo: {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}

@@ -106,12 +106,17 @@ try:
 
         # Передаем список всех подключений для сортировки в select и таймаут=0, для непрерывной работы
         # и получаем списки отправителей на сервер, получателей от сервера и ошибок природы
+
         if connections:
             rlist, wlist, xlist = select.select(connections, connections, connections, 0)
 
             for read_client in rlist:
-                bytes_request = read_client.recv(config.get('buffersize'))
-                requests.append(bytes_request)  # добавляем запрос в списк всех запросов
+                try:
+                    bytes_request = read_client.recv(config.get('buffersize'))
+                except Exception:
+                    connections.remove(read_client)  # в случае ошибки удаляем данного клиента
+                else:
+                    requests.append(bytes_request)  # добавляем запрос в списк всех запросов
 
             # полученные сообщанеия отправляем по одному, но всем!
             if requests:
@@ -120,7 +125,10 @@ try:
                 bytes_response = handle_default_request(bytes_request)
                 # отправляем ответ каждому клиенту, готовому получать (всем, ожидающим)
                 for write_client in wlist:
-                    write_client.send(bytes_response)
+                    try:
+                        write_client.send(bytes_response)
+                    except Exception:
+                        connections.remove(write_client)  # в случае ошибки удаляем данного клиента
 
 except KeyboardInterrupt:
     print('Server shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение

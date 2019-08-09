@@ -46,3 +46,14 @@
 2019-08-06 15:15:46,987 - ERROR - Controller with action name  echo does not exists
 2019-08-06 15:16:02,495 - INFO - Client send valid request {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}
 2019-08-06 15:16:02,496 - DEBUG - get_echo: {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}
+2019-08-09 10:07:01,705 - INFO - Server started with localhost:7777
+2019-08-09 10:14:32,330 - INFO - Client was detected 127.0.0.1:12204
+2019-08-09 10:16:23,496 - INFO - Client was detected 127.0.0.1:12205
+2019-08-09 10:16:55,376 - ERROR - Controller with action name Test does not exists
+2019-08-09 10:17:32,088 - INFO - Client send valid request {'action': 'echo', 'time': 1565335052.086325, 'data': 'qwert'}
+2019-08-09 10:17:32,089 - DEBUG - get_echo: {'action': 'echo', 'time': 1565335052.086325, 'data': 'qwert'}
+2019-08-09 10:41:07,342 - INFO - Server started with localhost:7777
+2019-08-09 10:42:18,560 - INFO - Server started with localhost:7777
+2019-08-09 10:42:41,079 - INFO - Client was detected 127.0.0.1:12243
+2019-08-09 10:42:44,686 - INFO - Client send valid request {'action': 'echo', 'time': 1565336564.668635, 'data': 'fsdgfsdfg'}
+2019-08-09 10:42:44,687 - DEBUG - get_echo: {'action': 'echo', 'time': 1565336564.668635, 'data': 'fsdgfsdfg'}

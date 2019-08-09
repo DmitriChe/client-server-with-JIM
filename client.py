@@ -17,6 +17,12 @@
 #   - имеет параметры командной строки: -p <port> — TCP-порт для работы (по умолчанию использует 7777);
 #   - -a <addr> — IP-адрес для прослушивания (по умолчанию слушает все доступные адреса).
 
+# Запуск в режиме чтения
+# python client.py -m read
+# Запуск в режиме отправки
+# python client.py -m write (или просто python client.py)
+
+
 import zlib
 import yaml  # pip install pyyaml
 import json

@@ -1,5 +1,5 @@
 
-# python server.py
+# python server
 # python server.py -c config yml
 # python server.py -a 127.0.0.1 -p 7777
 # python server.py -a localhost -p 7777

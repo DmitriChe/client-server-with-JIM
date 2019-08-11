@@ -1,29 +1,30 @@
-# Домашнее задание 04.
-# Реализовать простое клиент-серверное взаимодействие по протоколу JIM (JSON instant messaging):
-# клиент отправляет запрос серверу;
-# сервер отвечает соответствующим кодом результата.
-# Клиент и сервер должны быть реализованы в виде отдельных скриптов, содержащих соответствующие функции.
-# Функции клиента:
-#   - сформировать presence-сообщение;
-#   - отправить сообщение серверу;
-#   - получить ответ сервера;
-#   - разобрать сообщение сервера;
-#   - параметры командной строки скрипта client.py <addr> [<port>]: addr — ip-адрес сервера;
-#   - port — tcp-порт на сервере, по умолчанию 7777.
-# Функции сервера:
-#   - принимает сообщение клиента;
-#   - формирует ответ клиенту;
-#   - отправляет ответ клиенту;
-#   - имеет параметры командной строки: -p <port> — TCP-порт для работы (по умолчанию использует 7777);
-#   - -a <addr> — IP-адрес для прослушивания (по умолчанию слушает все доступные адреса).
-
-
-# pip install pyyaml
-import yaml
+import zlib
 import json
-from datetime import datetime
+import yaml  # pip install pyyaml
 import socket
+import threading
+from datetime import datetime
 from argparse import ArgumentParser
+
+WRITE_MODE = 'write'  # константа режима работы клиента
+READ_MODE = 'read'  # константа режима работы клиента
+
+
+def read(sock, buffersize):
+    while True:
+        response = sock.recv(buffersize)  # получаем ответ
+        bytes_response = zlib.decompress(response)  # декомпрессия ответа сервера
+        print(bytes_response.decode())  # декодируем, превращая в обычную стороку
+
+
+# Делим клиент на два подклиента: один для отправки сообщений (write), другой для получения (чтения)
+def make_request(action, data):
+    # Формируем и отдаем объект пользовательского запроса
+    return {
+        'action': action,
+        'time': datetime.now().timestamp(),  # текущая дата в виде timestamp
+        'data': data,
+    }
 
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
@@ -32,8 +33,10 @@ from argparse import ArgumentParser
 # А для этого предусмотрим возможнось задавать его имя из командной строки при запуске приложения,
 # а оттуда будем парсить настройки с помощью ArgumentParser
 
+
 # Создание парсера командной строки для анализа запроса: python client.py -c config.yml
 parser = ArgumentParser()
+
 parser.add_argument(
     '-c', '--config', type=str,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
@@ -59,7 +62,7 @@ args = parser.parse_args()
 config = {
     'host': 'localhost', # здесь используем локальный хост
     'port': 7777,  # номер порта на сетевой карте.
-    'buffersize': 1024  # размер буфера для приема сообщений клиента
+    'buffersize': 1024,  # размер буфера для приема сообщений клиента
 }
 
 # Если в командной строке указали аргумент с config файлом, то берем данные оттуда и перезаписываем ими словарь config
@@ -87,30 +90,35 @@ try:
     sock.connect((host, port))
     print(f'Client was started with { host }:{ port }\n')
 
-    # Данные: ввод и вывод
-    action = input('Enter action: ')
-    data = input('Enter data: ')
-    # Формирование запроса пользователя
-    request = {
-        'action': action,
-        'time': datetime.now().timestamp(),  # текущая дата в виде timestamp
-        'data': data,
-    }
-    # Формируем строку запроса в формате json из словаря с данными запроса request
-    str_request = json.dumps(request)
-    # Кодируем данные и передаем на сокет сервера
-    sock.send(str_request.encode())
-    print(f'Client send data { data }\n')
+    # Запускаем поток с процессом чтения сообщений сервера
+    read_thread = threading.Thread(
+        target=read, args=(sock, config.get('buffersize'))
+    )
+    read_thread.start()  # запускаем поток
 
-    b_response = sock.recv(config.get('buffersize'))
-    print(f'Server send data {b_response.decode()}')  # деокдируем и выводим полученные данные
+    # запускаем клиент в бесконечном цикле
+    while True:
+        # Данные: ввод и вывод
+        action = input('Enter action: ')
+        data = input('Enter data: ')
+        request = make_request(action, data)
+        # Получаем строку из запроса в формате json (из словаря с данными запроса request)
+        str_request = json.dumps(request)
+        # Кодирование и компрессия введенных пользователем данных
+        bytes_request = zlib.compress(str_request.encode())
+        # Отправляем сжатые данные на сокет сервера для передачи по сети
+        sock.send(bytes_request)
+        print(f'Client send data { data }\n')
+        # КОНЕЦ отправки
 
 except KeyboardInterrupt:
-    print('Client shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение
+    print('Client shutdown.')  # Вывод сообщения, что клиет завершил свое выполнение
 
 # Список функций для сокетов
 # Общие:
-# socket - конструктор объекта сокета (с методами сединения). Сокет - программный интерфейс, позволяющий отправлть данные по сети. Пара буферых файлов для хранения передаваемых данных, ip, port, программный интерфейс, который все это обслуживает, драйвера сетевой.... OSI
+# socket - конструктор объекта сокета (с методами сединения). Сокет - программный интерфейс, позволяющий отправлть
+# данные по сети. Пара буферых файлов для хранения передаваемых данных, ip, port, программный интерфейс,
+# который все это обслуживает, драйвера сетевой.... OSI
 # send - передать данные
 # recv - получить данные
 # close - закрыть соединение

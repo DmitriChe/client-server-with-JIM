@@ -1,15 +1,34 @@
-# pip install pyyaml
-# python server.py
+# python server
 # python server.py -c config yml
 # python server.py -a 127.0.0.1 -p 7777
 # python server.py -a localhost -p 7777
-
-import yaml
-import json
+# Пересылка: str -> bytes -> compress -> send -> recv -> decompress -> bytes -> str
+import yaml  # pip install pyyaml
 import socket
+import select
+import logging
+import threading
 from argparse import ArgumentParser
-from protocol import validate_request, make_response
+from handlers import handle_default_request
 
+
+# Функция обертка для всех функций вода-вывода, которые могли бы заблокировать поток выполнения программы
+# в нее передаем сокет, для получения сообщения, список подключений, списко запросов
+def read(sock, connections, requests, buffersize):
+    # безопасный процесс чтения данных с клиента: формаруем
+    try:
+        bytes_request = sock.recv(buffersize)  # формируем запрос
+    except Exception:
+        connections.remove(sock)  # в случае ошибки удаляем данного клиента
+    else:
+        requests.append(bytes_request)  # добавляем запрос в списк всех запросов
+
+
+def write(sock, connections, response):
+    try:
+        sock.send(response)
+    except Exception:
+        connections.remove(sock)  # в случае ошибки удаляем данного клиента
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
 # Через файл config.yml
@@ -17,8 +36,10 @@ from protocol import validate_request, make_response
 # А для этого предусмотрим возможнось задавать его имя из командной строки при запуске приложения,
 # а оттуда будем парсить настройки с помощью ArgumentParser
 
+
 # Создание парсера командной строки для анализа запроса: python client.py -c config.yml
 parser = ArgumentParser()
+
 parser.add_argument(
     '-c', '--config', type=str,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
@@ -53,6 +74,19 @@ if args.config:
         file_config = yaml.load(file, Loader=yaml.Loader)
         config.update(file_config)
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('main.log'),
+        logging.StreamHandler(),
+    ]
+)
+
+# Формируем список всех запросов
+requests = []
+# Формируем список всех подключенных клиентов
+connections = []
 
 # Вычленяем данные для подключения из config
 host, port = config.get('host'), config.get('port')
@@ -63,48 +97,64 @@ if args.addr:
 if args.port:
     port = args.port
 
+
 # Обработчик ошибки KeyboardInterrupt при нажатии Ctrl+C, Ctrl+D, Ctrl+BackSpace
 try:
     # Создаем объект sock - абстакцию над программно-аппаратным сокетом системы.
     sock = socket.socket()  # socket() это конструктор сокета. В него можно передать протокол и дескриптор
     # bind - привязываем сокет к IP-адресу и порту машины
     sock.bind((host, port))
+    # не подходит для win:
+    sock.setblocking(False)  # задаем серверу неблокирующий тип поведения - не ждет разрешения на выполение действий
+    sock.settimeout(0)  # задаем серверу неблокирующий тип поведения - не ждет разрешения на выполение действий
     # Связали. Теперь можно прослушивать порт на предмет запросов Клиента
     # listen - просигнализировать о готовности принимать соедение (аргументом явл число возможных подключений)
     sock.listen(5)  # Может обрабатыват 5 одновременных подключений
     # И отчитываемся, что
-    print(f'Server started with { host }:{ port }')
+    logging.info(f'Server started with { host }:{ port }')
 
     # Создаем бесконечный цикл ожидаиня сервером - прослушку
     while True:
-        client, address = sock.accept()
-        print(f'Client was detected { address[0] }:{ address[1]}')
-        # Пока реализуем простой эхо-сервер: сервер плучает от клиента сообщение и отсылает его в ответ
-        b_request = client.recv(config.get('buffersize'))  # Получаем сообщеие клиента
-        # Декодируем запрос пользователя и переформатируем его в формат json
-        request = json.loads(b_request.decode())
-        # Проводим валидацию запроса на предмет наличия требуемых полей
-        # Если все в порядке, то
-        if validate_request(request):
-            try:
-                print(f'Client send valid request {request}')
-                # И генерируем ответ сервера из запроса, кода ответа сервера и данных
-                response = make_response(request, 200, data=request.get('data'))
-            except Exception as err:
-                print(f'Internal server error: {err}')
-                response = make_response(request, 500, data='Internal server error')
-        # Иначе:
-        else:
-            print(f'Client send invalid request {request}')
-            response = make_response(request, 404, 'Wrong request')
 
-        # Форматируем в json, кодируем и отсылаем клиенту обратно его сообщение: "эхо"
-        str_response = json.dumps(response)
-        client.send(str_response.encode())
-        client.close()
+        try:
+            client, address = sock.accept()
+            logging.info(f'Client was detected { address[0] }:{ address[1]}')
+            connections.append(client)  # добавляем подключенного клиента в список счастливчиков
+        except:
+            pass
+
+        # Передаем список всех подключений для сортировки в select и таймаут=0, для непрерывной работы
+        # и получаем списки отправителей на сервер, получателей от сервера и ошибок природы
+
+        if connections:
+            rlist, wlist, xlist = select.select(connections, connections, connections, 0)
+
+            for read_client in rlist:
+                # создаем объекты потоков для чтения/записи
+                # read_client - клиентский сокет для отправки данных на сервер
+                read_thread = threading.Thread(
+                    target=read,
+                    args=(read_client, connections, requests, config.get('buffersize'))
+                )
+                read_thread.start()  # запускаем поток на выполнение
+
+
+            # полученные сообщанеия отправляем по одному, но всем!
+            if requests:
+                bytes_request = requests.pop()
+                # формируем ответ и...
+                bytes_response = handle_default_request(bytes_request)
+                # отправляем ответ каждому клиенту, готовому получать (всем, ожидающим)
+                for write_client in wlist:
+                    write_thread = threading.Thread(
+                        target=write,
+                        args=(write_client, connections, bytes_response)
+                    )
+                    write_thread.start()  # запускаем поток на выполнение
+
 
 except KeyboardInterrupt:
-    print('Server shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение
+    print('Server shutdown.')  # Вывод сообщения, что клиет завершил свое выполнение
 
 
 # Список функций для сокетов

@@ -1,17 +1,34 @@
-
 # python server
 # python server.py -c config yml
 # python server.py -a 127.0.0.1 -p 7777
 # python server.py -a localhost -p 7777
 # Пересылка: str -> bytes -> compress -> send -> recv -> decompress -> bytes -> str
-
 import yaml  # pip install pyyaml
 import socket
-import logging
 import select
+import logging
+import threading
 from argparse import ArgumentParser
 from handlers import handle_default_request
 
+
+# Функция обертка для всех функций вода-вывода, которые могли бы заблокировать поток выполнения программы
+# в нее передаем сокет, для получения сообщения, список подключений, списко запросов
+def read(sock, connections, requests, buffersize):
+    # безопасный процесс чтения данных с клиента: формаруем
+    try:
+        bytes_request = sock.recv(buffersize)  # формируем запрос
+    except Exception:
+        connections.remove(sock)  # в случае ошибки удаляем данного клиента
+    else:
+        requests.append(bytes_request)  # добавляем запрос в списк всех запросов
+
+
+def write(sock, connections, response):
+    try:
+        sock.send(response)
+    except Exception:
+        connections.remove(sock)  # в случае ошибки удаляем данного клиента
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
 # Через файл config.yml
@@ -19,8 +36,10 @@ from handlers import handle_default_request
 # А для этого предусмотрим возможнось задавать его имя из командной строки при запуске приложения,
 # а оттуда будем парсить настройки с помощью ArgumentParser
 
+
 # Создание парсера командной строки для анализа запроса: python client.py -c config.yml
 parser = ArgumentParser()
+
 parser.add_argument(
     '-c', '--config', type=str,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
@@ -111,12 +130,14 @@ try:
             rlist, wlist, xlist = select.select(connections, connections, connections, 0)
 
             for read_client in rlist:
-                try:
-                    bytes_request = read_client.recv(config.get('buffersize'))
-                except Exception:
-                    connections.remove(read_client)  # в случае ошибки удаляем данного клиента
-                else:
-                    requests.append(bytes_request)  # добавляем запрос в списк всех запросов
+                # создаем объекты потоков для чтения/записи
+                # read_client - клиентский сокет для отправки данных на сервер
+                read_thread = threading.Thread(
+                    target=read,
+                    args=(read_client, connections, requests, config.get('buffersize'))
+                )
+                read_thread.start()  # запускаем поток на выполнение
+
 
             # полученные сообщанеия отправляем по одному, но всем!
             if requests:
@@ -125,13 +146,15 @@ try:
                 bytes_response = handle_default_request(bytes_request)
                 # отправляем ответ каждому клиенту, готовому получать (всем, ожидающим)
                 for write_client in wlist:
-                    try:
-                        write_client.send(bytes_response)
-                    except Exception:
-                        connections.remove(write_client)  # в случае ошибки удаляем данного клиента
+                    write_thread = threading.Thread(
+                        target=write,
+                        args=(write_client, connections, bytes_response)
+                    )
+                    write_thread.start()  # запускаем поток на выполнение
+
 
 except KeyboardInterrupt:
-    print('Server shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение
+    print('Server shutdown.')  # Вывод сообщения, что клиет завершил свое выполнение
 
 
 # Список функций для сокетов

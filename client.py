@@ -1,37 +1,21 @@
-# Домашнее задание 04.
-# Реализовать простое клиент-серверное взаимодействие по протоколу JIM (JSON instant messaging):
-# клиент отправляет запрос серверу;
-# сервер отвечает соответствующим кодом результата.
-# Клиент и сервер должны быть реализованы в виде отдельных скриптов, содержащих соответствующие функции.
-# Функции клиента:
-#   - сформировать presence-сообщение;
-#   - отправить сообщение серверу;
-#   - получить ответ сервера;
-#   - разобрать сообщение сервера;
-#   - параметры командной строки скрипта client.py <addr> [<port>]: addr — ip-адрес сервера;
-#   - port — tcp-порт на сервере, по умолчанию 7777.
-# Функции сервера:
-#   - принимает сообщение клиента;
-#   - формирует ответ клиенту;
-#   - отправляет ответ клиенту;
-#   - имеет параметры командной строки: -p <port> — TCP-порт для работы (по умолчанию использует 7777);
-#   - -a <addr> — IP-адрес для прослушивания (по умолчанию слушает все доступные адреса).
-
-# Запуск в режиме чтения
-# python client.py -m read
-# Запуск в режиме отправки
-# python client.py -m write (или просто python client.py)
-
-
 import zlib
-import yaml  # pip install pyyaml
 import json
-from datetime import datetime
+import yaml  # pip install pyyaml
 import socket
+import threading
+from datetime import datetime
 from argparse import ArgumentParser
 
 WRITE_MODE = 'write'  # константа режима работы клиента
 READ_MODE = 'read'  # константа режима работы клиента
+
+
+def read(sock, buffersize):
+    while True:
+        response = sock.recv(buffersize)  # получаем ответ
+        bytes_response = zlib.decompress(response)  # декомпрессия ответа сервера
+        print(bytes_response.decode())  # декодируем, превращая в обычную стороку
+
 
 # Делим клиент на два подклиента: один для отправки сообщений (write), другой для получения (чтения)
 def make_request(action, data):
@@ -41,6 +25,7 @@ def make_request(action, data):
         'time': datetime.now().timestamp(),  # текущая дата в виде timestamp
         'data': data,
     }
+
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
 # Через файл config.yml
@@ -67,12 +52,6 @@ parser.add_argument(
     required=False,  # Задаем, что этот аргумент является необязательным
     help='Sets tcp-порт сервера'  # Сообщение при вызове помощи
 )
-# Аргумент режима работы клиента-мессенджера: чтение или запись (прием или отправка)
-# По умолчанию режим отправки сообщений
-parser.add_argument(
-    '-m', '--mode', type=str, default=WRITE_MODE,
-    help='Sets client mode'
-)
 
 # Считываем аргументы из командной строки
 args = parser.parse_args()
@@ -83,7 +62,7 @@ args = parser.parse_args()
 config = {
     'host': 'localhost', # здесь используем локальный хост
     'port': 7777,  # номер порта на сетевой карте.
-    'buffersize': 1024  # размер буфера для приема сообщений клиента
+    'buffersize': 1024,  # размер буфера для приема сообщений клиента
 }
 
 # Если в командной строке указали аргумент с config файлом, то берем данные оттуда и перезаписываем ими словарь config
@@ -111,37 +90,35 @@ try:
     sock.connect((host, port))
     print(f'Client was started with { host }:{ port }\n')
 
-    # запускаем клиент в бесконечном цикле и проверяем режим работы
-    while True:
-        # если клиент открыт в режиме отправки сообщений то постоянно создаем и отправляем сообщения
-        if args.mode == WRITE_MODE:
-            # Данные: ввод и вывод
-            action = input('Enter action: ')
-            data = input('Enter data: ')
-            request = make_request(action, data)
-            # Получаем строку из запроса в формате json (из словаря с данными запроса request)
-            str_request = json.dumps(request)
-            # Кодирование и компрессия введенных пользователем данных
-            bytes_request = zlib.compress(str_request.encode())
-            # Отправляем сжатые данные на сокет сервера для передачи по сети
-            sock.send(bytes_request)
-            print(f'Client send data { data }\n')
-            # КОНЕЦ отправки
+    # Запускаем поток с процессом чтения сообщений сервера
+    read_thread = threading.Thread(
+        target=read, args=(sock, config.get('buffersize'))
+    )
+    read_thread.start()  # запускаем поток
 
-        # если клиент открыт в режиме приема сообщений то постоянно принимаемсообщения
-        elif args.mode == READ_MODE:
-            # Получаем ответ сервера
-            response = sock.recv(config.get('buffersize'))
-            # Разархивируем полученное сообщение
-            bytes_response = zlib.decompress(response)
-            print(f'Server send data {bytes_response.decode()}')  # деокдируем и выводим полученные данные
+    # запускаем клиент в бесконечном цикле
+    while True:
+        # Данные: ввод и вывод
+        action = input('Enter action: ')
+        data = input('Enter data: ')
+        request = make_request(action, data)
+        # Получаем строку из запроса в формате json (из словаря с данными запроса request)
+        str_request = json.dumps(request)
+        # Кодирование и компрессия введенных пользователем данных
+        bytes_request = zlib.compress(str_request.encode())
+        # Отправляем сжатые данные на сокет сервера для передачи по сети
+        sock.send(bytes_request)
+        print(f'Client send data { data }\n')
+        # КОНЕЦ отправки
 
 except KeyboardInterrupt:
-    print('Client shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение
+    print('Client shutdown.')  # Вывод сообщения, что клиет завершил свое выполнение
 
 # Список функций для сокетов
 # Общие:
-# socket - конструктор объекта сокета (с методами сединения). Сокет - программный интерфейс, позволяющий отправлть данные по сети. Пара буферых файлов для хранения передаваемых данных, ip, port, программный интерфейс, который все это обслуживает, драйвера сетевой.... OSI
+# socket - конструктор объекта сокета (с методами сединения). Сокет - программный интерфейс, позволяющий отправлть
+# данные по сети. Пара буферых файлов для хранения передаваемых данных, ip, port, программный интерфейс,
+# который все это обслуживает, драйвера сетевой.... OSI
 # send - передать данные
 # recv - получить данные
 # close - закрыть соединение

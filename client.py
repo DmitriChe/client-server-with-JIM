@@ -17,14 +17,30 @@
 #   - имеет параметры командной строки: -p <port> — TCP-порт для работы (по умолчанию использует 7777);
 #   - -a <addr> — IP-адрес для прослушивания (по умолчанию слушает все доступные адреса).
 
+# Запуск в режиме чтения
+# python client.py -m read
+# Запуск в режиме отправки
+# python client.py -m write (или просто python client.py)
 
-# pip install pyyaml
-import yaml
+
+import zlib
+import yaml  # pip install pyyaml
 import json
 from datetime import datetime
 import socket
 from argparse import ArgumentParser
 
+WRITE_MODE = 'write'  # константа режима работы клиента
+READ_MODE = 'read'  # константа режима работы клиента
+
+# Делим клиент на два подклиента: один для отправки сообщений (write), другой для получения (чтения)
+def make_request(action, data):
+    # Формируем и отдаем объект пользовательского запроса
+    return {
+        'action': action,
+        'time': datetime.now().timestamp(),  # текущая дата в виде timestamp
+        'data': data,
+    }
 
 # На сервере и клиенте host и port должны совпадать - а как это обеспечить в независимых приложениях?
 # Через файл config.yml
@@ -32,8 +48,10 @@ from argparse import ArgumentParser
 # А для этого предусмотрим возможнось задавать его имя из командной строки при запуске приложения,
 # а оттуда будем парсить настройки с помощью ArgumentParser
 
+
 # Создание парсера командной строки для анализа запроса: python client.py -c config.yml
 parser = ArgumentParser()
+
 parser.add_argument(
     '-c', '--config', type=str,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
@@ -48,6 +66,12 @@ parser.add_argument(
     '-p', '--port', type=int,  # Описываем параметры (-c - сокращенное имя для командной строки или --config - полное имя, которое испльзуется далее в args.config) для командной строки и допустимый тип данных - str
     required=False,  # Задаем, что этот аргумент является необязательным
     help='Sets tcp-порт сервера'  # Сообщение при вызове помощи
+)
+# Аргумент режима работы клиента-мессенджера: чтение или запись (прием или отправка)
+# По умолчанию режим отправки сообщений
+parser.add_argument(
+    '-m', '--mode', type=str, default=WRITE_MODE,
+    help='Sets client mode'
 )
 
 # Считываем аргументы из командной строки
@@ -87,23 +111,30 @@ try:
     sock.connect((host, port))
     print(f'Client was started with { host }:{ port }\n')
 
-    # Данные: ввод и вывод
-    action = input('Enter action: ')
-    data = input('Enter data: ')
-    # Формирование запроса пользователя
-    request = {
-        'action': action,
-        'time': datetime.now().timestamp(),  # текущая дата в виде timestamp
-        'data': data,
-    }
-    # Формируем строку запроса в формате json из словаря с данными запроса request
-    str_request = json.dumps(request)
-    # Кодируем данные и передаем на сокет сервера
-    sock.send(str_request.encode())
-    print(f'Client send data { data }\n')
+    # запускаем клиент в бесконечном цикле и проверяем режим работы
+    while True:
+        # если клиент открыт в режиме отправки сообщений то постоянно создаем и отправляем сообщения
+        if args.mode == WRITE_MODE:
+            # Данные: ввод и вывод
+            action = input('Enter action: ')
+            data = input('Enter data: ')
+            request = make_request(action, data)
+            # Получаем строку из запроса в формате json (из словаря с данными запроса request)
+            str_request = json.dumps(request)
+            # Кодирование и компрессия введенных пользователем данных
+            bytes_request = zlib.compress(str_request.encode())
+            # Отправляем сжатые данные на сокет сервера для передачи по сети
+            sock.send(bytes_request)
+            print(f'Client send data { data }\n')
+            # КОНЕЦ отправки
 
-    b_response = sock.recv(config.get('buffersize'))
-    print(f'Server send data {b_response.decode()}')  # деокдируем и выводим полученные данные
+        # если клиент открыт в режиме приема сообщений то постоянно принимаемсообщения
+        elif args.mode == READ_MODE:
+            # Получаем ответ сервера
+            response = sock.recv(config.get('buffersize'))
+            # Разархивируем полученное сообщение
+            bytes_response = zlib.decompress(response)
+            print(f'Server send data {bytes_response.decode()}')  # деокдируем и выводим полученные данные
 
 except KeyboardInterrupt:
     print('Client shotdown.')  # Вывод сообщения, что клиет завершил свое выполнение

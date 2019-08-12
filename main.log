@@ -1,0 +1,48 @@
+2019-08-03 17:59:47,655 - INFO - Server started with localhost:7777
+2019-08-03 18:02:32,866 - INFO - Client was detected 127.0.0.1:18009
+2019-08-03 18:11:21,295 - INFO - Server started with localhost:7777
+2019-08-03 18:11:26,908 - INFO - Client was detected 127.0.0.1:18041
+2019-08-03 18:12:07,512 - INFO - Server started with localhost:7777
+2019-08-03 18:12:11,300 - INFO - Client was detected 127.0.0.1:18044
+2019-08-03 18:12:15,520 - ERROR - Controller with action name test does not exists
+2019-08-03 18:12:33,800 - INFO - Client was detected 127.0.0.1:18048
+2019-08-03 18:12:38,147 - INFO - Client send valid request {'action': 'echo', 'time': 1564845158.146495, 'data': 'test'}
+2019-08-03 18:19:51,557 - INFO - Client was detected 127.0.0.1:18080
+2019-08-03 18:20:00,743 - ERROR - Controller with action name qwerty does not exists
+2019-08-03 22:54:05,816 - INFO - Server started with localhost:7777
+2019-08-03 22:54:15,992 - INFO - Client was detected 127.0.0.1:19033
+2019-08-03 22:54:26,965 - INFO - Client send valid request {'action': 'echo', 'time': 1564862066.901598, 'data': 'privet'}
+2019-08-03 22:54:26,966 - DEBUG - get_echo: {'action': 'echo', 'time': 1564862066.901598, 'data': 'privet'}
+2019-08-06 09:22:32,966 - INFO - Server started with localhost:7777
+2019-08-06 09:22:49,556 - INFO - Client was detected 127.0.0.1:62153
+2019-08-06 09:23:05,320 - INFO - Client send valid request {'action': 'echo', 'time': 1565072585.281834, 'data': 'qwerty'}
+2019-08-06 09:23:05,321 - DEBUG - get_echo: {'action': 'echo', 'time': 1565072585.281834, 'data': 'qwerty'}
+2019-08-06 10:45:37,542 - INFO - Server started with localhost:7777
+2019-08-06 10:45:42,304 - INFO - Client was detected 127.0.0.1:62636
+2019-08-06 10:45:49,201 - INFO - Client send valid request {'action': 'echo', 'time': 1565077549.148047, 'data': 'mydata'}
+2019-08-06 10:45:49,202 - DEBUG - get_echo: {'action': 'echo', 'time': 1565077549.148047, 'data': 'mydata'}
+2019-08-06 11:00:50,713 - INFO - Server started with localhost:7777
+2019-08-06 11:00:54,130 - INFO - Client was detected 127.0.0.1:62719
+2019-08-06 11:00:59,046 - INFO - Client send valid request {'action': 'echo', 'time': 1565078459.03651, 'data': 'asdfaf'}
+2019-08-06 11:00:59,047 - DEBUG - get_echo: {'action': 'echo', 'time': 1565078459.03651, 'data': 'asdfaf'}
+2019-08-06 13:58:57,585 - INFO - Server started with localhost:7777
+2019-08-06 14:00:37,838 - INFO - Server started with localhost:7777
+2019-08-06 14:04:59,992 - INFO - Server started with localhost:7777
+2019-08-06 14:09:12,225 - INFO - Server started with localhost:7777
+2019-08-06 14:09:47,284 - INFO - Server started with localhost:7777
+2019-08-06 14:09:52,160 - INFO - Server started with localhost:7777
+2019-08-06 14:09:59,512 - INFO - Server started with localhost:7777
+2019-08-06 14:10:06,496 - INFO - Server started with localhost:7777
+2019-08-06 14:36:11,312 - INFO - Server started with localhost:7777
+2019-08-06 14:49:24,446 - INFO - Server started with localhost:7777
+2019-08-06 14:51:04,967 - INFO - Server started with localhost:7777
+2019-08-06 14:51:22,910 - INFO - Server started with localhost:7777
+2019-08-06 14:51:40,982 - INFO - Server started with localhost:7777
+2019-08-06 14:51:59,512 - INFO - Server started with localhost:7777
+2019-08-06 14:53:01,054 - INFO - Server started with localhost:7777
+2019-08-06 15:14:55,658 - INFO - Server started with localhost:7777
+2019-08-06 15:15:28,325 - INFO - Client was detected 127.0.0.1:65212
+2019-08-06 15:15:38,633 - INFO - Client was detected 127.0.0.1:65213
+2019-08-06 15:15:46,987 - ERROR - Controller with action name  echo does not exists
+2019-08-06 15:16:02,495 - INFO - Client send valid request {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}
+2019-08-06 15:16:02,496 - DEBUG - get_echo: {'action': 'echo', 'time': 1565093762.49425, 'data': 'hi'}
